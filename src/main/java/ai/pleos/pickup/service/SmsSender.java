@@ -47,8 +47,16 @@ public class SmsSender {
     public record Result(boolean sent, String detail) {}
 
     public Result send(String toPhone, String text) {
+        return send(toPhone, null, text);
+    }
+
+    /**
+     * @param subject LMS 제목 (null/blank 이면 생략). 메시지가 SMS 로 보내지는 경우 무시됨.
+     */
+    public Result send(String toPhone, String subject, String text) {
         if (apiKey.isBlank() || apiSecret.isBlank() || senderPhone.isBlank()) {
-            log.info("[SMS mock] (solapi not configured) to={} text={}", toPhone, truncate(text));
+            log.info("[SMS mock] (solapi not configured) to={} subject={} text={}",
+                    toPhone, subject, truncate(text));
             return new Result(false, "sms_not_configured");
         }
         try {
@@ -58,13 +66,14 @@ public class SmsSender {
             String auth = "HMAC-SHA256 apiKey=%s, date=%s, salt=%s, signature=%s"
                     .formatted(apiKey, date, salt, signature);
 
-            String body = mapper.writeValueAsString(Map.of(
-                    "message", Map.of(
-                            "to", onlyDigits(toPhone),
-                            "from", onlyDigits(senderPhone),
-                            "text", text
-                    )
-            ));
+            java.util.Map<String, Object> message = new java.util.LinkedHashMap<>();
+            message.put("to", onlyDigits(toPhone));
+            message.put("from", onlyDigits(senderPhone));
+            message.put("text", text);
+            if (subject != null && !subject.isBlank()) {
+                message.put("subject", subject);
+            }
+            String body = mapper.writeValueAsString(Map.of("message", message));
 
             HttpRequest req = HttpRequest.newBuilder(URI.create(ENDPOINT))
                     .header("Authorization", auth)

@@ -31,8 +31,8 @@ public class SessionController {
     private final PickupSessionService service;
     private final SmsSender sms;
 
-    @Value("${app.sms-template}")
-    private String smsTemplate;
+    @Value("${app.sms-title:}")   private String smsTitle;
+    @Value("${app.sms-template}") private String smsTemplate;
 
     public SessionController(PickupSessionService service, SmsSender sms) {
         this.service = service;
@@ -56,7 +56,7 @@ public class SessionController {
         String smsDetail = "no_phone";
         if (req.passengerPhone() != null && !req.passengerPhone().isBlank()) {
             String message = smsTemplate.replace("{url}", webUrl);
-            SmsSender.Result r = sms.send(req.passengerPhone(), message);
+            SmsSender.Result r = sms.send(req.passengerPhone(), smsTitle, message);
             smsSent = r.sent();
             smsDetail = r.detail();
         }

@@ -38,7 +38,8 @@ solapi:
 
 app:
   web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
-  sms-template: "[Picko] 운전자가 픽업 지점을 안내했어요. 아래 링크에서 확인하세요.\n{url}"
+  sms-title: "[Picko]"
+  sms-template: "픽업요청이 도착했어요!🚗\n현재 위치를 공유하면 최적의 픽업 장소를 찾아드릴게요. {url}"
 
 springdoc:
   swagger-ui:

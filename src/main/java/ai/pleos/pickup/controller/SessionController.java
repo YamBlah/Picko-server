@@ -2,6 +2,7 @@ package ai.pleos.pickup.controller;
 
 import ai.pleos.pickup.domain.PickupSession;
 import ai.pleos.pickup.dto.CancelRequest;
+import ai.pleos.pickup.dto.CancelResponse;
 import ai.pleos.pickup.dto.CreateSessionRequest;
 import ai.pleos.pickup.dto.RedeemRequest;
 import ai.pleos.pickup.dto.SessionResponse;
@@ -78,22 +79,27 @@ public class SessionController {
     @Operation(
         summary = "세션 취소 (운전자)",
         description = """
-            차량 앱이 세션 토큰으로 취소 요청. 상태를 CANCELED 로 전환하고
-            보행자 웹에 WebSocket 으로 { "type":"session_canceled", "reason": "..." } 전송.
-            보행자 웹은 이 메시지 받으면 alert + 위치 공유 중단.
+            차량 앱이 세션 토큰으로 호출. 다음을 수행:
+            1. DB: `PickupSession.status` → `CANCELED`
+            2. WebSocket: 매칭된 보행자에게 `{"type":"session_canceled","reason":"..."}` 송출
+                 → 탑승자 웹은 자동으로 알림 + Geolocation watchPosition 중단 + WS 종료
+
+            `reason` 은 선택. 생략하면 `driver_canceled` 로 기록.
+            이미 CANCELED 상태인 세션에 재호출해도 (idempotent) 안전.
             """
     )
     @PostMapping("/cancel")
-    public Map<String, Object> cancel(@RequestBody @jakarta.validation.Valid CancelRequest req) {
+    public CancelResponse cancel(@RequestBody @jakarta.validation.Valid CancelRequest req) {
         PickupSession session = service.cancel(req.token());
+        String reason = req.reason() == null ? "driver_canceled" : req.reason();
         try {
             String payload = mapper.writeValueAsString(Map.of(
                     "type", "session_canceled",
-                    "reason", req.reason() == null ? "driver_canceled" : req.reason()
+                    "reason", reason
             ));
             registry.sendToPedestrian(session.getId(), payload);
         } catch (Exception ignored) {}
-        return Map.of("status", session.getStatus().name(), "sessionId", session.getId().toString());
+        return new CancelResponse(session.getStatus(), session.getId().toString(), "session_canceled");
     }
 
     @Operation(

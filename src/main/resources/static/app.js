@@ -130,11 +130,33 @@ function initMap() {
 
   document.getElementById('recenterBtn').addEventListener('click', () => {
     if (MY_POS) {
-      map.setCenter(new kakao.maps.LatLng(MY_POS.lat, MY_POS.lng));
+      map.panTo(new kakao.maps.LatLng(MY_POS.lat, MY_POS.lng));
       map.setLevel(3);
     } else {
-      map.setCenter(new kakao.maps.LatLng(MEET_POINT.lat, MEET_POINT.lng));
+      map.panTo(new kakao.maps.LatLng(MEET_POINT.lat, MEET_POINT.lng));
     }
+  });
+
+  // 범례 클릭 → 해당 마커로 pan
+  document.querySelectorAll('.legend-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      const target = el.dataset.target;
+      let pos = null;
+      if (target === 'vehicle' && VEHICLE_POS) pos = VEHICLE_POS;
+      else if (target === 'me' && MY_POS) pos = MY_POS;
+      else if (target === 'meet') pos = MEET_POINT;
+      if (pos) {
+        map.panTo(new kakao.maps.LatLng(pos.lat, pos.lng));
+      } else {
+        // 아직 좌표 없는 경우 (차량 운행 전 / 위치 공유 전)
+        el.animate([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-3px)' },
+          { transform: 'translateX(3px)' },
+          { transform: 'translateX(0)' },
+        ], { duration: 180 });
+      }
+    });
   });
 
   connectWebSocket();

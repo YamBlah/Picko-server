@@ -70,26 +70,33 @@ img { display: block; }
   left: 16px;
   bottom: calc(var(--sheet-height, 345px) + 16px);
   display: flex;
-  gap: 18px;
+  gap: 4px;
   align-items: center;
   background: var(--c-white);
   border-radius: 16px;
   box-shadow: var(--shadow-level-1);
-  padding: 0 14px;
+  padding: 2px 6px;
   height: 32px;
   z-index: 5;
-  pointer-events: none;
   transition: bottom 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .legend-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
   font-weight: 700;
   font-size: 13px;
   color: var(--c-navy);
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
+.legend-item:hover { background: var(--c-blue-ice); }
+.legend-item:active { background: #D9E9FF; }
 .legend-item img {
   width: 15px;
   height: 15px;

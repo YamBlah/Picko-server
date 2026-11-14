@@ -19,17 +19,17 @@
     <section class="map-section">
       <div id="map" class="map"></div>
 
-      <!-- 지도 범례 -->
+      <!-- 지도 범례 (클릭 → 해당 마커로 이동) -->
       <div class="map-legend">
-        <span class="legend-item">
+        <button type="button" class="legend-item" data-target="vehicle">
           <img src="assets/legend_vehicle.svg" alt="" aria-hidden="true" />차량
-        </span>
-        <span class="legend-item">
+        </button>
+        <button type="button" class="legend-item" data-target="me">
           <img src="assets/legend_pedestrian.svg" alt="" aria-hidden="true" />내 위치
-        </span>
-        <span class="legend-item">
+        </button>
+        <button type="button" class="legend-item" data-target="meet">
           <img src="assets/legend_meeting.svg" alt="" aria-hidden="true" />만남 지점
-        </span>
+        </button>
       </div>
 
       <!-- 재센터 버튼 (inline SVG for filter 호환) -->

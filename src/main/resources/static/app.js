@@ -20,8 +20,20 @@ let map, vehicleMarker, meMarker, meetMarker, pathLine;
         credentials: 'same-origin',
         body: JSON.stringify({ token }),
       });
-      if (!res.ok) throw new Error('redeem_failed: ' + (await res.text()));
-      sessionInfo = await res.json();
+
+      if (res.ok) {
+        sessionInfo = await res.json();
+      } else {
+        // redeem 실패 (already_redeemed / expired / invalid_token 등)
+        // 쿠키가 남아있을 수도 있으니 /me 로 폴백 시도
+        const body = await res.text();
+        const meRes = await fetch('/api/sessions/me', { credentials: 'same-origin' });
+        if (meRes.ok) {
+          sessionInfo = await meRes.json();
+        } else {
+          throw new Error('redeem_failed: ' + body);
+        }
+      }
 
       // URL에서 토큰 즉시 제거 (히스토리/Referer 노출 방지)
       history.replaceState(null, '', location.pathname);

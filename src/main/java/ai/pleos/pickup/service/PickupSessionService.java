@@ -69,7 +69,14 @@ public class PickupSessionService {
     }
 
     public String buildWebUrl(String token) {
-        return webBaseUrl + "/?t=" + token;
+        String base = webBaseUrl == null ? "" : webBaseUrl.trim();
+        // Railway UI 등에서 scheme 이 생략돼 저장되기도 하니 보정
+        if (!base.startsWith("http://") && !base.startsWith("https://")) {
+            base = "https://" + base;
+        }
+        // 끝에 슬래시 중복 방지
+        if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+        return base + "/?t=" + token;
     }
 
     private String randomUrlSafe(int bytes) {

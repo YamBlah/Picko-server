@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>픽업 안내</title>
+  <title>Picko</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Kakao Maps JavaScript SDK (services 라이브러리 포함) -->
   <script
     type="text/javascript"
     src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d8a9a27e90cd5ba00102b59cccf34c78&autoload=false&libraries=services"
@@ -13,41 +14,51 @@
 </head>
 <body>
   <div class="screen" data-node-id="64:10212">
-    <!-- 상단 지도 -->
+
+    <!-- 지도 영역 -->
     <section class="map-section">
       <div id="map" class="map"></div>
 
-      <!-- 차량 이동 상태 말풍선 -->
-      <div class="status-pill vehicle-status">
-        <span>차량 이동 중 · 약 3분</span>
-      </div>
-
-      <!-- 지도 위치 재설정 버튼 -->
-      <button id="recenterBtn" class="recenter-btn" aria-label="내 위치로">◎</button>
-
       <!-- 지도 범례 -->
       <div class="map-legend">
-        <span><em class="dot vehicle"></em>차량</span>
-        <span><em class="dot me"></em>내 위치</span>
-        <span><em class="dot meet"></em>만남 지점</span>
+        <span class="legend-item">
+          <img src="assets/legend_vehicle.svg" alt="" aria-hidden="true" />차량
+        </span>
+        <span class="legend-item">
+          <img src="assets/legend_pedestrian.svg" alt="" aria-hidden="true" />내 위치
+        </span>
+        <span class="legend-item">
+          <img src="assets/legend_meeting.svg" alt="" aria-hidden="true" />만남 지점
+        </span>
       </div>
+
+      <!-- 재센터 버튼 -->
+      <button id="recenterBtn" class="recenter-btn" aria-label="내 위치로">
+        <img src="assets/recenter.svg" alt="" aria-hidden="true" />
+      </button>
     </section>
 
     <!-- 바텀시트 -->
     <section class="sheet">
       <div class="drag-handle" aria-hidden="true"></div>
 
-      <h1 class="sheet-title">차량이 오고 있어요!</h1>
-      <p class="sheet-sub">운전자가 지정한 픽업 장소에서 만나요.</p>
+      <!-- 헤더 -->
+      <div class="sheet-header">
+        <h1 class="sheet-title">차량이 오고 있어요!</h1>
+        <p class="sheet-sub">운전자가 지정한 픽업 장소에서 만나요.</p>
+      </div>
 
       <!-- 차량 정보 카드 -->
       <div class="vehicle-card">
-        <div class="vehicle-icon">🚘</div>
+        <div class="vehicle-icon">
+          <img src="assets/ic_driver_card.svg" alt="" aria-hidden="true" />
+        </div>
         <div class="vehicle-info">
           <div class="vehicle-model"></div>
           <div class="vehicle-plate"></div>
           <div class="vehicle-color"></div>
         </div>
+        <div class="eta-divider" aria-hidden="true"></div>
         <div class="eta">
           <div class="eta-label">도착 예정</div>
           <div class="eta-value">3분</div>
@@ -55,15 +66,22 @@
       </div>
 
       <!-- 픽업 위치 -->
-      <div class="pickup-row">
-        <div class="pickup-left">
-          <div class="pickup-label">픽업 위치</div>
-          <div class="pickup-name"></div>
+      <div class="pickup-details">
+        <div class="pickup-meta">
+          <span>픽업 위치</span>
+          <span class="dot">·</span>
+          <span class="walk">도보 약 2분</span>
         </div>
-        <div class="pickup-walk">도보 약 2분</div>
+        <div class="pickup-name"></div>
       </div>
 
-      <button class="cta-btn">픽업 장소까지 길 안내 ↗</button>
+      <!-- CTA 버튼 -->
+      <button class="cta-btn" type="button">
+        <img src="assets/ic_send.svg" alt="" aria-hidden="true" class="cta-icon" />
+        <span>운전자에게 내 위치 보내기</span>
+      </button>
+
+      <p class="cta-hint">내 위치를 공유해 운전자와 더 쉽게 만날 수 있어요.</p>
     </section>
   </div>
 

@@ -1,188 +1,231 @@
+/* ===== PICKO 디자인 토큰 ===== */
+:root {
+  --c-primary:         #416DE9;
+  --c-primary-dark:    #2E5AD2;
+  --c-primary-light:   #678AED;
+  --c-navy:            #171D32;
+  --c-navy-text:       #172D51;
+  --c-navy-blue:       #173A75;
+  --c-text-secondary:  #526583;
+  --c-glass-border:    rgba(194, 219, 245, 0.9);
+  --c-bg-soft:         #F2F7FF;
+  --c-blue-ice:        #E4F0FF;
+  --c-blue-gray-light: #D1DFF0;
+  --c-gray-light:      #D9D9D9;
+  --c-gray-blue:       #ADBDD6;
+  --c-mint-light:      #91F7D1;
+  --c-white:           #FFFFFF;
+
+  --shadow-level-1:    0 6px 24px rgba(0, 0, 0, 0.08);
+  --shadow-marker:     0 2px 8px rgba(0, 0, 0, 0.08);
+  --gradient-primary:  linear-gradient(155.66deg, #678AED 6.4%, #416DE9 48%, #2E5AD2 86.4%);
+
+  --radius-sm:         8px;
+  --radius-md:         13px;
+  --radius-lg:         14px;
+  --radius-xl:         15px;
+  --radius-sheet:      24px;
+}
+
 /* ===== Reset / Base ===== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
-  background: #e5e5e5;
-  color: #172239;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: #E5E5E5;
+  color: var(--c-navy);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-button { font-family: inherit; cursor: pointer; border: none; background: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+img { display: block; }
 
-/* ===== Screen (모바일 기준 375w, 데스크톱에서는 가운데 정렬) ===== */
+/* ===== 전체 화면 (모바일 375 기준) ===== */
 .screen {
   position: relative;
   width: 100%;
   max-width: 375px;
   min-height: 100vh;
   margin: 0 auto;
-  background: #fff;
+  background: var(--c-white);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ===== Map Section ===== */
+/* ===== 지도 ===== */
 .map-section {
   position: relative;
   width: 100%;
   height: 470px;
-  background: #edf3f0;
+  background: var(--c-bg-soft);
+  flex-shrink: 0;
 }
 .map { width: 100%; height: 100%; }
 
-/* 차량 이동 상태 말풍선 (좌상단 고정) */
-.status-pill {
-  position: absolute;
-  left: 30px;
-  top: 24px;
-  background: #fff;
-  border-radius: 13px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #24416d;
-  z-index: 5;
-}
-
-/* 지도 위치 재설정 버튼 (우측 하단) */
-.recenter-btn {
-  position: absolute;
-  right: 15px;
-  bottom: 73px;
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-  color: #263c60;
-  font-size: 21px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 5;
-}
-
-/* 지도 범례 (하단) */
+/* 지도 범례 */
 .map-legend {
   position: absolute;
-  left: 17px;
-  bottom: 16px;
+  left: 16px;
+  bottom: 40px;
   display: flex;
-  gap: 14px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-  padding: 9px 12px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #36516f;
+  gap: 18px;
+  align-items: center;
+  background: var(--c-white);
+  border-radius: 16px;
+  box-shadow: var(--shadow-level-1);
+  padding: 0 14px;
+  height: 32px;
   z-index: 5;
+  pointer-events: none;
 }
-.map-legend span { display: inline-flex; align-items: center; gap: 4px; }
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.dot.vehicle { background: #173c91; }
-.dot.me { background: #2087ff; }
-.dot.meet { background: #193c86; transform: rotate(45deg); border-radius: 1px; }
-
-/* ===== 지도 마커 커스텀 ===== */
-.marker-vehicle {
-  width: 37px;
-  height: 37px;
-  border-radius: 50%;
-  background: #173c91;
-  border: 5px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  display: flex;
+.legend-item {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 12px;
+  gap: 4px;
   font-weight: 700;
-}
-.marker-me {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: rgba(32, 135, 255, 0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.marker-me::after {
-  content: '';
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #2087ff;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-}
-.marker-meet {
-  position: relative;
-  padding: 7px 14px;
-  background: #193c86;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  color: var(--c-navy);
   white-space: nowrap;
 }
-.marker-meet::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -14px;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid #193c86;
+.legend-item img {
+  width: 15px;
+  height: 15px;
 }
 
-/* ===== Bottom Sheet ===== */
+/* 재센터 버튼 */
+.recenter-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.recenter-btn img {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== 지도 마커 (카카오맵 CustomOverlay 안에 들어감) ===== */
+.marker-combined {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px;
+  pointer-events: none;
+}
+
+.marker-badge {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  border: 1.5px solid var(--c-white);
+  box-shadow: var(--shadow-marker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.marker-badge.vehicle { background: var(--c-primary); }
+.marker-badge.pedestrian { background: var(--c-mint-light); }
+.marker-badge img { width: 17px; height: 17px; }
+
+/* 차량 반경 할로 (마커 아래쪽에 깔림) */
+.vehicle-halo {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  left: -27px;
+  top: -27px;
+  pointer-events: none;
+}
+.vehicle-halo img { width: 100%; height: 100%; }
+
+/* 마커 옆 라벨 */
+.marker-label {
+  background: var(--c-white);
+  border: 0.7px solid var(--c-glass-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-marker);
+  padding: 6px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+.marker-label .label-title {
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--c-navy-text);
+}
+.marker-label .label-sub {
+  font-weight: 400;
+  font-size: 9.5px;
+  color: var(--c-text-secondary);
+}
+
+/* 추천 픽업 위치 마커 (SVG 핀 배지) */
+.marker-pickup-badge {
+  width: 29px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.marker-pickup-badge img { width: 100%; height: 100%; }
+
+/* ===== 바텀시트 ===== */
 .sheet {
   position: relative;
-  margin-top: -14px;
-  background: #fff;
-  border-radius: 24px 24px 0 0;
+  margin-top: -24px;
+  background: var(--c-white);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
-  padding: 11px 16px 20px;
+  padding: 11px 20px 20px;
   z-index: 10;
+  flex: 1;
 }
+
 .drag-handle {
   width: 45px;
   height: 4px;
   border-radius: 2px;
-  background: #d8dee8;
-  margin: 0 auto 22px;
+  background: var(--c-blue-gray-light);
+  margin: 0 auto 20px;
+}
+
+.sheet-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
 }
 .sheet-title {
-  font-size: 21px;
   font-weight: 700;
-  color: #172239;
-  margin-bottom: 11px;
+  font-size: 21px;
+  color: var(--c-navy);
+  line-height: 1;
 }
 .sheet-sub {
+  font-weight: 400;
   font-size: 12px;
-  color: #64728a;
-  margin-bottom: 18px;
+  color: var(--c-text-secondary);
+  line-height: 1;
 }
 
 /* 차량 정보 카드 */
 .vehicle-card {
+  position: relative;
+  background: var(--c-bg-soft);
+  border-radius: var(--radius-xl);
+  height: 90px;
+  padding: 12px;
   display: flex;
   align-items: center;
-  background: #f7f9fd;
-  border-radius: 15px;
-  padding: 16px 14px;
   gap: 10px;
   margin-bottom: 20px;
 }
@@ -190,92 +233,140 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   width: 54px;
   height: 56px;
   flex-shrink: 0;
-  background: #e8eefa;
-  border-radius: 13px;
+  background: var(--c-blue-ice);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 25px;
 }
-.vehicle-info { flex: 1; min-width: 0; }
+.vehicle-icon img { width: 36px; height: 36px; }
+
+.vehicle-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .vehicle-model {
+  font-weight: 400;
   font-size: 13px;
-  font-weight: 700;
-  color: #18243a;
-  margin-bottom: 4px;
+  color: var(--c-text-secondary);
 }
 .vehicle-plate {
-  font-size: 19px;
   font-weight: 700;
-  color: #18243a;
-  line-height: 1.1;
-  margin-bottom: 4px;
+  font-size: 19px;
+  color: var(--c-navy);
+  line-height: 1;
 }
 .vehicle-color {
+  font-weight: 400;
   font-size: 11px;
-  color: #6b7890;
+  color: var(--c-text-secondary);
+}
+
+.eta-divider {
+  width: 1px;
+  height: 62px;
+  background: var(--c-gray-light);
+  flex-shrink: 0;
 }
 .eta {
-  position: relative;
-  padding-left: 14px;
-  text-align: left;
-  min-width: 70px;
-}
-.eta::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 100%;
-  background: #dfe5ef;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 65px;
 }
 .eta-label {
+  font-weight: 400;
   font-size: 10px;
-  color: #738099;
-  margin-bottom: 3px;
+  color: var(--c-text-secondary);
 }
 .eta-value {
-  font-size: 22px;
   font-weight: 700;
-  color: #2861e4;
+  font-size: 22px;
+  color: var(--c-primary);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* 픽업 위치 */
-.pickup-row {
+.pickup-details {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 14px;
 }
-.pickup-label {
+.pickup-meta {
+  display: flex;
+  align-items: center;
+  gap: 1px;
   font-size: 11px;
-  color: #718098;
-  margin-bottom: 6px;
+  color: var(--c-text-secondary);
 }
+.pickup-meta .dot { padding: 0 2px; }
+.pickup-meta .walk { color: var(--c-navy-blue); }
 .pickup-name {
+  font-weight: 700;
   font-size: 16px;
-  font-weight: 700;
-  color: #172239;
-}
-.pickup-walk {
-  font-size: 11px;
-  font-weight: 700;
-  color: #3165d8;
-  white-space: nowrap;
+  color: var(--c-navy);
+  line-height: 22px;
+  height: 22px;
 }
 
 /* CTA 버튼 */
 .cta-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
-  padding: 16px;
-  background: #3167e9;
-  color: #fff;
-  border-radius: 14px;
-  font-size: 15px;
+  height: 49px;
+  background: var(--gradient-primary);
+  border: 1px solid rgba(228, 240, 255, 0.66);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-level-1);
+  color: var(--c-white);
   font-weight: 700;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  font-size: 15px;
 }
-.cta-btn:active { background: #2a5ad1; }
+.cta-btn:active { filter: brightness(0.95); }
+.cta-btn .cta-icon { width: 18px; height: 18px; }
+.cta-btn:disabled { opacity: 0.7; cursor: default; }
+
+.cta-hint {
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--c-gray-blue);
+}
+
+/* ===== 링크 만료 폴백 화면 ===== */
+.expired {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 24px;
+  text-align: center;
+  background: var(--c-bg-soft);
+  color: var(--c-navy);
+}
+.expired .emoji { font-size: 48px; margin-bottom: 12px; }
+.expired .title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.expired .desc { font-size: 13px; color: var(--c-text-secondary); }
+.expired .reason { font-size: 11px; color: var(--c-gray-blue); margin-top: 16px; }
+
+/* ===== 지오로케이션 오류 배너 ===== */
+.geo-error-banner {
+  margin: 8px 16px;
+  padding: 12px;
+  background: #fff4f4;
+  border: 1px solid #ffb3b3;
+  border-radius: 8px;
+  color: #8c2222;
+  font-size: 12px;
+  white-space: pre-wrap;
+}

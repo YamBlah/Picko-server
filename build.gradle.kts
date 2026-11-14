@@ -28,6 +28,8 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql") // prod 배포 시 사용
 
     implementation("org.locationtech.jts:jts-core:1.19.0")
+
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 }
 
 tasks.withType<JavaCompile> {

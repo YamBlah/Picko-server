@@ -39,3 +39,11 @@ coolsms:
 app:
   web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
   sms-template: "[Picko] 운전자가 픽업 지점을 안내했어요. 아래 링크에서 확인하세요.\n{url}"
+
+springdoc:
+  swagger-ui:
+    path: /swagger
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs

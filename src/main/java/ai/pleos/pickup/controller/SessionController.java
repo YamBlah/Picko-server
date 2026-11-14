@@ -42,9 +42,12 @@ public class SessionController {
     @Operation(
         summary = "세션 생성 + SMS 발송",
         description = """
-            운전자가 추천 중 하나를 선택한 뒤 호출. 세션을 만들고 탑승자용 웹 링크(webUrl)를 반환.
-            passengerPhone 이 포함되고 서버에 쿨SMS 설정이 되어 있으면 자동 발송.
-            설정 안 되어 있거나 전화번호가 없으면 응답의 webUrl 을 수동으로 전달하면 됨.
+            운전자 앱이 호출. 추천 API(/api/pickup/recommend)로 받은 Top1 후보의 메타(label, category,
+            walkFromDestinationM/Min, vehicleDistanceM, vehicleEtaMin)를 그대로 함께 넘기면
+            탑승자 웹에 바로 표시됨.
+
+            passengerPhone 이 포함되고 SOLAPI 환경변수가 세팅돼 있으면 자동 SMS 발송.
+            아니면 응답의 webUrl 을 운전자가 수동 전달하면 됨.
             """
     )
     @PostMapping

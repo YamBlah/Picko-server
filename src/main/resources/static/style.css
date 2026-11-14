@@ -93,7 +93,7 @@ img { display: block; }
   height: 15px;
 }
 
-/* 재센터 버튼 — SVG 는 77x77 (drop shadow 포함). visual 영역만 32x32 로 anchor */
+/* 재센터 버튼 — inline SVG 로 필터 렌더링 */
 .recenter-btn {
   position: absolute;
   right: 16px;
@@ -102,12 +102,14 @@ img { display: block; }
   height: 32px;
   padding: 0;
   background: transparent;
+  border: 0;
+  overflow: visible;
   z-index: 5;
 }
-.recenter-btn img {
+.recenter-btn svg {
   position: absolute;
-  width: 77.18px;
-  height: 77.18px;
+  width: 77.1765px;
+  height: 77.1765px;
   top: -16.94px;
   left: -22.59px;
   pointer-events: none;
@@ -173,14 +175,15 @@ img { display: block; }
   color: var(--c-text-secondary);
 }
 
-/* 추천 픽업 위치 마커 — SVG 는 44.88x44.88 (drop shadow 포함). visual pin 은 29x29 */
+/* 추천 픽업 위치 마커 — inline SVG, drop shadow 포함 44x44, visual pin 은 29x29 */
 .marker-pickup-badge {
   position: relative;
   width: 29px;
   height: 29px;
   flex-shrink: 0;
+  overflow: visible;
 }
-.marker-pickup-badge img {
+.marker-pickup-badge svg {
   position: absolute;
   width: 44.88px;
   height: 44.88px;

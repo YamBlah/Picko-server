@@ -72,11 +72,35 @@ public class PickupRecommender {
             double destinationLat, double destinationLng,
             int limit
     ) {
-        // 1) 차량 → 목적지 경로 (+ 실측 distance/duration)
-        RouteResult route = directions.fetchRoute(
-                new LatLng(vehicleLat, vehicleLng),
-                new LatLng(destinationLat, destinationLng)
-        );
+        return recommend(vehicleLat, vehicleLng, destinationLat, destinationLng, limit, null);
+    }
+
+    /**
+     * @param externalRoute 외부에서 계산한 차량 경로 (ex. 운전자 네비 결과). null 이면 Kakao 호출.
+     */
+    public List<PickupCandidate> recommend(
+            double vehicleLat, double vehicleLng,
+            double destinationLat, double destinationLng,
+            int limit,
+            List<LatLng> externalRoute
+    ) {
+        // 1) 차량 → 목적지 경로
+        RouteResult route;
+        if (externalRoute != null && !externalRoute.isEmpty()) {
+            // 외부 입력 경로 — 거리 합산 + 기본 속도(400 m/min) 가정
+            double dist = 0;
+            for (int i = 1; i < externalRoute.size(); i++) {
+                dist += haversineM(externalRoute.get(i - 1).lat(), externalRoute.get(i - 1).lng(),
+                                   externalRoute.get(i).lat(), externalRoute.get(i).lng());
+            }
+            route = new RouteResult(externalRoute, dist, dist / 400.0 * 60.0);
+            log.info("[Recommend] external route used ({}pts, {}m)", externalRoute.size(), (int) dist);
+        } else {
+            route = directions.fetchRoute(
+                    new LatLng(vehicleLat, vehicleLng),
+                    new LatLng(destinationLat, destinationLng)
+            );
+        }
         if (route.isEmpty()) return List.of();
         double avgSpeed = route.avgSpeedMpm();
 

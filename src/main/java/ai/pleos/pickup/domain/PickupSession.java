@@ -28,6 +28,22 @@ public class PickupSession {
     @Column(name = "pickup_lng", nullable = false) private double pickupLng;
     @Column(name = "pickup_name", length = 128)    private String pickupName;
 
+    // 픽업 지점 추가 정보 (추천 결과를 그대로 저장)
+    @Column(name = "pickup_category", length = 32)
+    private String pickupCategory;                 // 편의점 | 카페 | 지하철역 | 은행 | 경로 | null
+
+    @Column(name = "walk_from_destination_m")
+    private Double walkFromDestinationM;           // 목적지 → 픽업지점 보행거리 (m)
+
+    @Column(name = "walk_from_destination_min")
+    private Double walkFromDestinationMin;         // 위의 분 환산
+
+    @Column(name = "vehicle_distance_m")
+    private Double vehicleDistanceM;               // 차량 이동 거리 (m)
+
+    @Column(name = "vehicle_eta_min")
+    private Double vehicleEtaMin;                  // 차량 도착 예상 (분)
+
     // 차량 정보 (보행자 UI 표시용)
     @Column(name = "vehicle_model", length = 64)  private String vehicleModel;
     @Column(name = "vehicle_plate", length = 32)  private String vehiclePlate;
@@ -67,6 +83,9 @@ public class PickupSession {
 
     public PickupSession(String token, Instant tokenExpiresAt,
                          double pickupLat, double pickupLng, String pickupName,
+                         String pickupCategory,
+                         Double walkFromDestinationM, Double walkFromDestinationMin,
+                         Double vehicleDistanceM, Double vehicleEtaMin,
                          String vehicleModel, String vehiclePlate, String vehicleColor,
                          String passengerPhone) {
         this.token = token;
@@ -75,6 +94,11 @@ public class PickupSession {
         this.pickupLat = pickupLat;
         this.pickupLng = pickupLng;
         this.pickupName = pickupName;
+        this.pickupCategory = pickupCategory;
+        this.walkFromDestinationM = walkFromDestinationM;
+        this.walkFromDestinationMin = walkFromDestinationMin;
+        this.vehicleDistanceM = vehicleDistanceM;
+        this.vehicleEtaMin = vehicleEtaMin;
         this.vehicleModel = vehicleModel;
         this.vehiclePlate = vehiclePlate;
         this.vehicleColor = vehicleColor;
@@ -110,6 +134,11 @@ public class PickupSession {
     public String getVehiclePlate()       { return vehiclePlate; }
     public String getVehicleColor()       { return vehicleColor; }
     public String getPassengerPhone()     { return passengerPhone; }
+    public String getPickupCategory()     { return pickupCategory; }
+    public Double getWalkFromDestinationM()   { return walkFromDestinationM; }
+    public Double getWalkFromDestinationMin() { return walkFromDestinationMin; }
+    public Double getVehicleDistanceM()   { return vehicleDistanceM; }
+    public Double getVehicleEtaMin()      { return vehicleEtaMin; }
     public Instant getTokenExpiresAt()    { return tokenExpiresAt; }
     public Instant getRedeemedAt()        { return redeemedAt; }
     public String getWebSessionId()       { return webSessionId; }

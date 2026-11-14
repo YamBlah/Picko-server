@@ -32,11 +32,14 @@ public class PickupSessionService {
 
     @Transactional
     public PickupSession create(CreateSessionRequest req) {
-        String token = randomUrlSafe(12);  // 16자 URL-safe
+        String token = randomUrlSafe(12);
         Instant now = Instant.now();
         PickupSession session = new PickupSession(
                 token, now.plus(TOKEN_TTL),
                 req.pickupLat(), req.pickupLng(), req.pickupName(),
+                req.pickupCategory(),
+                req.walkFromDestinationM(), req.walkFromDestinationMin(),
+                req.vehicleDistanceM(), req.vehicleEtaMin(),
                 req.vehicleModel(), req.vehiclePlate(), req.vehicleColor(),
                 req.passengerPhone()
         );

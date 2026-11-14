@@ -1,9 +1,13 @@
 package ai.pleos.pickup.rec;
 
+import ai.pleos.pickup.client.KakaoDirectionsClient.LatLng;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,10 +51,31 @@ public class RecommendationController {
             @Parameter(description = "운전자가 지정한 목적지 경도") @RequestParam double dLng,
             @Parameter(description = "반환할 후보 개수 (기본 3)") @RequestParam(defaultValue = "3") int limit
     ) {
-        List<PickupCandidate> result = recommender.recommend(vLat, vLng, dLat, dLng, limit);
-        return Map.of(
-                "count", result.size(),
-                "recommendations", result
-        );
+        return wrap(recommender.recommend(vLat, vLng, dLat, dLng, limit, null));
+    }
+
+    @Operation(
+        summary = "픽업 위치 추천 Top N (POST — 외부 route 전달 가능)",
+        description = """
+            GET 과 동일. 차이점: body 에 vehicleRoute 를 넣으면 Kakao 모빌리티 호출을 스킵하고
+            그 경로를 그대로 샘플링에 사용. 운전자 네비 앱이 이미 계산한 경로를 넘길 때 유용.
+
+            도보 경로는 후보별로 다르므로 입력으로 받지 않음 (내부에서 OSRM 으로 top K 만 enrich).
+            """
+    )
+    @PostMapping("/recommend")
+    public Map<String, Object> recommendPost(@RequestBody @Valid RecommendRequest req) {
+        List<LatLng> externalRoute = null;
+        if (req.vehicleRoute() != null && !req.vehicleRoute().isEmpty()) {
+            externalRoute = req.vehicleRoute().stream()
+                    .map(p -> new LatLng(p.lat(), p.lng()))
+                    .toList();
+        }
+        int lim = req.limit() == null ? 3 : req.limit();
+        return wrap(recommender.recommend(req.vLat(), req.vLng(), req.dLat(), req.dLng(), lim, externalRoute));
+    }
+
+    private Map<String, Object> wrap(List<PickupCandidate> result) {
+        return Map.of("count", result.size(), "recommendations", result);
     }
 }

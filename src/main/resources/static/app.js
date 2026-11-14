@@ -4,6 +4,49 @@ let VEHICLE_POS = { lat: MEET_POINT.lat, lng: MEET_POINT.lng };
 let MY_POS = null;
 let sessionInfo = null;
 
+// 평균 속도 (라이브 ETA 계산용). 서울 도심 가정.
+const WALK_M_PER_MIN  = 75;    // 4.5 km/h
+const DRIVE_M_PER_MIN = 400;   // 24 km/h
+
+// Haversine 거리 (m)
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLng = (lng2 - lng1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad)
+          * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// 차량이 실제로 좌표 쏘기 시작했는지 (초기 placeholder 상태 구분용)
+let vehicleEverReceived = false;
+
+function updateVehicleEta() {
+  if (!vehicleEverReceived) return;   // 운전자 운행 시작 전엔 "—" 유지
+  const vDist = haversineM(VEHICLE_POS.lat, VEHICLE_POS.lng, MEET_POINT.lat, MEET_POINT.lng);
+  const vMin = Math.max(1, Math.round(vDist / DRIVE_M_PER_MIN));
+  const etaEl = document.querySelector('.eta-value');
+  if (etaEl) etaEl.textContent = `${vMin}분`;
+}
+
+function updateWalkEta() {
+  if (!MY_POS) return;                // 위치 공유 전엔 "위치 공유 전" 유지
+  const wDist = haversineM(MY_POS.lat, MY_POS.lng, MEET_POINT.lat, MEET_POINT.lng);
+  // 큰 수는 시간/분 단위로 포맷
+  const wMin = Math.round(wDist / WALK_M_PER_MIN);
+  const walkEl = document.querySelector('.pickup-meta .walk');
+  if (!walkEl) return;
+  if (wMin >= 60) {
+    const h = Math.floor(wMin / 60);
+    const m = wMin % 60;
+    walkEl.textContent = m > 0 ? `도보 약 ${h}시간 ${m}분` : `도보 약 ${h}시간`;
+  } else {
+    walkEl.textContent = `도보 약 ${Math.max(1, wMin)}분`;
+  }
+}
+
 let map;
 let vehicleMarker, meMarker, meetMarker, pathLine;
 
@@ -50,6 +93,8 @@ function applySessionInfo(s) {
   if (q('.vehicle-plate') && s.vehiclePlate) q('.vehicle-plate').textContent = s.vehiclePlate;
   if (q('.vehicle-color') && s.vehicleColor) q('.vehicle-color').textContent = `차량 색상 · ${s.vehicleColor}`;
   if (q('.pickup-name')  && s.pickupName)   q('.pickup-name').textContent  = s.pickupName;
+  // 주의: ETA/도보 분은 "실제 좌표가 수신될 때만" recalcEtas() 로 설정.
+  //       세션 저장값은 운전자 설정값 기반이라 탑승자 실제 위치와 무관함.
 }
 
 function showExpired(reason) {
@@ -112,11 +157,36 @@ function makePedestrianMarkerContent() {
   return wrap;
 }
 
+const SVG_MARKER_PICKUP = `
+<svg width="44.88" height="44.88" viewBox="0 0 44.88 44.88" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#f_pk)">
+    <g clip-path="url(#c_pk)">
+      <rect x="7.92" y="5.94" width="29.04" height="29.04" rx="14.52" fill="#416DE9"/>
+      <circle cx="22.44" cy="20.46" r="18.15" fill="#2385F5" stroke-width="0.66" stroke="#2385F5"/>
+      <path d="M22.44 26.73C22.44 26.73 17.49 21.78 17.49 19.14C17.49 17.8272 18.0115 16.5681 18.9398 15.6398C19.8681 14.7115 21.1272 14.19 22.44 14.19C23.7528 14.19 25.0119 14.7115 25.9402 15.6398C26.8685 16.5681 27.39 17.8272 27.39 19.14C27.39 21.78 22.44 26.73 22.44 26.73Z" fill="white"/>
+      <path d="M22.44 21.12C23.5335 21.12 24.42 20.2335 24.42 19.14C24.42 18.0465 23.5335 17.16 22.44 17.16C21.3465 17.16 20.46 18.0465 20.46 19.14C20.46 20.2335 21.3465 21.12 22.44 21.12Z" fill="#416DE9"/>
+    </g>
+    <rect x="8.58" y="6.6" width="27.72" height="27.72" rx="13.86" stroke="white" stroke-width="1.32"/>
+  </g>
+  <defs>
+    <filter id="f_pk" x="0" y="0" width="44.88" height="44.88" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BG"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hA"/>
+      <feOffset dy="1.98"/>
+      <feGaussianBlur stdDeviation="3.96"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08 0"/>
+      <feBlend mode="normal" in2="BG" result="shadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="shadow"/>
+    </filter>
+    <clipPath id="c_pk"><rect x="7.92" y="5.94" width="29.04" height="29.04" rx="14.52" fill="white"/></clipPath>
+  </defs>
+</svg>`;
+
 function makeMeetMarkerContent(subText = '추천 픽업 위치') {
   const wrap = document.createElement('div');
   wrap.className = 'marker-combined';
   wrap.innerHTML = `
-    <div class="marker-pickup-badge"><img src="assets/marker_pickup_badge.svg" alt=""/></div>
+    <div class="marker-pickup-badge">${SVG_MARKER_PICKUP}</div>
     <div class="marker-label">
       <div class="label-title">${subText}</div>
       <div class="label-sub" data-role="meet-sub">도보 약 2분</div>
@@ -177,15 +247,14 @@ function handleWsMessage(msg) {
     case 'vehicle_location':
       VEHICLE_POS = { lat: msg.lat, lng: msg.lng };
       vehicleMarker.setPosition(new kakao.maps.LatLng(msg.lat, msg.lng));
+      vehicleEverReceived = true;
+      updateVehicleEta();
       break;
     case 'eta':
-      updateEta(msg.minutes);
+      const etaEl = document.querySelector('.eta-value');
+      if (etaEl && msg.minutes != null) etaEl.textContent = `${msg.minutes}분`;
       break;
   }
-}
-function updateEta(minutes) {
-  const etaEl = document.querySelector('.eta-value');
-  if (etaEl && minutes != null) etaEl.textContent = `${minutes}분`;
 }
 
 // ===== Geolocation =====
@@ -227,6 +296,7 @@ function startSharingLocation() {
       MY_POS = { lat, lng };
       drawMeMarker();
       meMarker?.setPosition(new kakao.maps.LatLng(lat, lng));
+      updateWalkEta();     // 내 위치 기반 도보 ETA 재계산
 
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'pedestrian_location', lat, lng }));

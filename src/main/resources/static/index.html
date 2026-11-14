@@ -32,9 +32,26 @@
         </span>
       </div>
 
-      <!-- 재센터 버튼 -->
+      <!-- 재센터 버튼 (inline SVG for filter 호환) -->
       <button id="recenterBtn" class="recenter-btn" aria-label="내 위치로">
-        <img src="assets/recenter.svg" alt="" aria-hidden="true" />
+        <svg width="77.1765" height="77.1765" viewBox="0 0 77.1765 77.1765" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g filter="url(#f_rc)">
+            <rect x="22.5882" y="16.9412" width="32" height="32" rx="16" fill="white"/>
+            <circle cx="38.5882" cy="32.9412" r="6.68235" stroke-width="1.69412" stroke="#416DE9"/>
+            <circle cx="38.5882" cy="32.9412" r="2.82353" fill="#416DE9"/>
+          </g>
+          <defs>
+            <filter id="f_rc" x="0" y="0" width="77.1765" height="77.1765" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+              <feFlood flood-opacity="0" result="BG"/>
+              <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hA"/>
+              <feOffset dy="5.64706"/>
+              <feGaussianBlur stdDeviation="11.2941"/>
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08 0"/>
+              <feBlend mode="normal" in2="BG" result="shadow"/>
+              <feBlend mode="normal" in="SourceGraphic" in2="shadow"/>
+            </filter>
+          </defs>
+        </svg>
       </button>
     </section>
 
@@ -61,7 +78,7 @@
         <div class="eta-divider" aria-hidden="true"></div>
         <div class="eta">
           <div class="eta-label">도착 예정</div>
-          <div class="eta-value">3분</div>
+          <div class="eta-value">—</div>
         </div>
       </div>
 
@@ -70,7 +87,7 @@
         <div class="pickup-meta">
           <span>픽업 위치</span>
           <span class="dot">·</span>
-          <span class="walk">도보 약 2분</span>
+          <span class="walk">위치 공유 전</span>
         </div>
         <div class="pickup-name"></div>
       </div>

@@ -211,7 +211,7 @@ function drawVehicleMarker() {
   vehicleMarker = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(VEHICLE_POS.lat, VEHICLE_POS.lng),
     content: makeVehicleMarkerContent(),
-    xAnchor: 0.1, yAnchor: 0.5, zIndex: 3,
+    xAnchor: 0.5, yAnchor: 0.5, zIndex: 3,
   });
   vehicleMarker.setMap(map);
 }
@@ -221,7 +221,7 @@ function drawMeetMarker() {
   meetMarker = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(MEET_POINT.lat, MEET_POINT.lng),
     content: makeMeetMarkerContent(label),
-    xAnchor: 0.1, yAnchor: 0.5, zIndex: 4,
+    xAnchor: 0.5, yAnchor: 0.5, zIndex: 4,
   });
   meetMarker.setMap(map);
 }
@@ -231,7 +231,7 @@ function drawMeMarker() {
   meMarker = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(MY_POS.lat, MY_POS.lng),
     content: makePedestrianMarkerContent(),
-    xAnchor: 0.1, yAnchor: 0.5, zIndex: 2,
+    xAnchor: 0.5, yAnchor: 0.5, zIndex: 2,
   });
   meMarker.setMap(map);
 }

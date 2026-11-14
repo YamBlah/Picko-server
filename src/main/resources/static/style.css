@@ -115,13 +115,15 @@ img { display: block; }
   pointer-events: none;
 }
 
-/* ===== 지도 마커 (카카오맵 CustomOverlay 안에 들어감) ===== */
+/* ===== 지도 마커 (카카오맵 CustomOverlay 안에 들어감) =====
+ * 레이아웃: 배지만 container 크기 결정, 라벨은 absolute 로 배지 오른쪽에 떠다님.
+ * → xAnchor/yAnchor = 0.5, 0.5 (배지 중심) 로 배지가 정확히 좌표 위에 옴.
+ */
 .marker-combined {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 4px;
+  display: inline-block;
+  position: relative;
   pointer-events: none;
+  overflow: visible;
 }
 
 .marker-badge {
@@ -134,7 +136,7 @@ img { display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  z-index: 1;
 }
 .marker-badge.vehicle { background: var(--c-primary); }
 .marker-badge.pedestrian { background: var(--c-mint-light); }
@@ -152,8 +154,12 @@ img { display: block; }
 }
 .vehicle-halo img { width: 100%; height: 100%; display: block; }
 
-/* 마커 옆 라벨 */
+/* 마커 옆 라벨 — absolute 로 배지 오른쪽에 둬서 배지-좌표 정렬 안 흔들리게 */
 .marker-label {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 50%;
+  transform: translateY(-50%);
   background: var(--c-white);
   border: 0.7px solid var(--c-glass-border);
   border-radius: 8px;
@@ -163,6 +169,7 @@ img { display: block; }
   flex-direction: column;
   gap: 2px;
   white-space: nowrap;
+  z-index: 2;
 }
 .marker-label .label-title {
   font-weight: 700;
@@ -180,8 +187,8 @@ img { display: block; }
   position: relative;
   width: 29px;
   height: 29px;
-  flex-shrink: 0;
   overflow: visible;
+  z-index: 1;
 }
 .marker-pickup-badge svg {
   position: absolute;

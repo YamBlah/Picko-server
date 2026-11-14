@@ -7,6 +7,8 @@ import ai.pleos.pickup.dto.SessionResponse;
 import ai.pleos.pickup.dto.WebSessionView;
 import ai.pleos.pickup.service.PickupSessionService;
 import ai.pleos.pickup.service.SmsSender;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 
+@Tag(name = "1. Sessions", description = "픽업 세션 생성 / 토큰↔쿠키 교환 / 세션 조회")
 @RestController
 @RequestMapping("/api/sessions")
 public class SessionController {
@@ -36,10 +39,14 @@ public class SessionController {
         this.sms = sms;
     }
 
-    /**
-     * 차량(Pleos 앱)이 호출 → 세션 생성 + (전화번호 있으면) SMS 자동 발송.
-     * 전화번호 없거나 쿨SMS 설정 안 된 경우엔 webUrl 수동 전달용으로 응답에 포함.
-     */
+    @Operation(
+        summary = "세션 생성 + SMS 발송",
+        description = """
+            운전자가 추천 중 하나를 선택한 뒤 호출. 세션을 만들고 탑승자용 웹 링크(webUrl)를 반환.
+            passengerPhone 이 포함되고 서버에 쿨SMS 설정이 되어 있으면 자동 발송.
+            설정 안 되어 있거나 전화번호가 없으면 응답의 webUrl 을 수동으로 전달하면 됨.
+            """
+    )
     @PostMapping
     public SessionResponse create(@RequestBody @Valid CreateSessionRequest req) {
         PickupSession session = service.create(req);
@@ -57,7 +64,14 @@ public class SessionController {
         return SessionResponse.from(session, webUrl, smsSent, smsDetail);
     }
 
-    /** 웹이 SMS 링크를 열 때 호출 → 쿠키 발급, 토큰 폐기 */
+    @Operation(
+        summary = "토큰 → 쿠키 교환 (매직 링크)",
+        description = """
+            탑승자 웹이 ?t=TOKEN 으로 들어오면 자동 호출. 토큰을 1회 소비하면서 세션 쿠키(PSID)를 발급.
+            쿠키는 HttpOnly + Secure(HTTPS시) + SameSite=Lax, 4시간 유효.
+            이미 사용된 토큰은 400 (already_redeemed) 반환.
+            """
+    )
     @PostMapping("/redeem")
     public WebSessionView redeem(@RequestBody @Valid RedeemRequest req,
                                  HttpServletRequest request,
@@ -68,7 +82,10 @@ public class SessionController {
         return WebSessionView.from(session);
     }
 
-    /** 새로고침 등으로 다시 로드될 때 쿠키로 세션 조회 */
+    @Operation(
+        summary = "쿠키로 세션 조회 (새로고침 복구)",
+        description = "PSID 쿠키로 현재 세션 정보 반환. 쿠키 없거나 만료되면 401."
+    )
     @GetMapping("/me")
     public WebSessionView me(HttpServletRequest request) {
         String sid = readSessionCookie(request);

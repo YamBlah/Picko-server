@@ -20,64 +20,66 @@ import java.util.HexFormat;
 import java.util.Map;
 
 /**
- * 쿨SMS v4 발송. 환경변수(코드설정)로 API 키/시크릿/발신번호 세팅.
- * 설정 안 되어 있으면 로그만 찍고 성공 반환 (개발 중 데모 단절 방지).
+ * SOLAPI (구 CoolSMS) v4 문자 발송.
+ * - IP whitelist: SOLAPI 콘솔에서 "클라우드 공급사" → GCP 선택 (Railway = GCP)
+ * - HMAC-SHA256 서명 인증
  *
- * 설정 예:
- *   COOLSMS_API_KEY=NCSXXXXXXX
- *   COOLSMS_API_SECRET=xxxxxxxxxx
- *   COOLSMS_SENDER_PHONE=01012345678   (쿨SMS 콘솔에서 사전 등록된 발신번호)
+ * 환경변수:
+ *   SOLAPI_API_KEY=NCSXXXXXXXX
+ *   SOLAPI_API_SECRET=xxxxxxxxxx
+ *   SOLAPI_SENDER_PHONE=01012345678   (사전 등록한 발신번호)
  */
 @Service
 public class SmsSender {
 
     private static final Logger log = LoggerFactory.getLogger(SmsSender.class);
-    private static final String ENDPOINT = "https://api.coolsms.co.kr/messages/v4/send";
+    private static final String ENDPOINT = "https://api.solapi.com/messages/v4/send";
     private static final SecureRandom RNG = new SecureRandom();
 
-    @Value("${coolsms.api-key:}")        private String apiKey;
-    @Value("${coolsms.api-secret:}")     private String apiSecret;
-    @Value("${coolsms.sender-phone:}")   private String senderPhone;
+    @Value("${solapi.api-key:}")      private String apiKey;
+    @Value("${solapi.api-secret:}")   private String apiSecret;
+    @Value("${solapi.sender-phone:}") private String senderPhone;
 
-    private final HttpClient http = HttpClient.newHttpClient();
+    private final HttpClient http = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5)).build();
     private final ObjectMapper mapper = new ObjectMapper();
 
     public record Result(boolean sent, String detail) {}
 
     public Result send(String toPhone, String text) {
         if (apiKey.isBlank() || apiSecret.isBlank() || senderPhone.isBlank()) {
-            log.info("[SMS mock] (coolsms not configured) to={} text={}", toPhone, text);
+            log.info("[SMS mock] (solapi not configured) to={} text={}", toPhone, truncate(text));
             return new Result(false, "sms_not_configured");
         }
         try {
             String date = Instant.now().toString();
-            String salt = randomSalt(16);
+            String salt = randomHex(16);
             String signature = hmacSha256Hex(apiSecret, date + salt);
             String auth = "HMAC-SHA256 apiKey=%s, date=%s, salt=%s, signature=%s"
                     .formatted(apiKey, date, salt, signature);
 
             String body = mapper.writeValueAsString(Map.of(
                     "message", Map.of(
-                            "to", toPhone.replaceAll("[^0-9]", ""),
-                            "from", senderPhone.replaceAll("[^0-9]", ""),
+                            "to", onlyDigits(toPhone),
+                            "from", onlyDigits(senderPhone),
                             "text", text
                     )
             ));
 
             HttpRequest req = HttpRequest.newBuilder(URI.create(ENDPOINT))
                     .header("Authorization", auth)
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", "application/json; charset=UTF-8")
                     .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                     .build();
             HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
 
             if (res.statusCode() == 200) {
                 log.info("[SMS sent] to={} body={}", toPhone, truncate(res.body()));
-                return new Result(true, res.body());
+                return new Result(true, truncate(res.body()));
             } else {
                 log.warn("[SMS failed] HTTP {} body={}", res.statusCode(), truncate(res.body()));
-                return new Result(false, "http_" + res.statusCode());
+                return new Result(false, "http_" + res.statusCode() + " " + truncate(res.body()));
             }
         } catch (Exception e) {
             log.warn("[SMS error] {}", e.getMessage());
@@ -91,10 +93,14 @@ public class SmsSender {
         return HexFormat.of().formatHex(mac.doFinal(data.getBytes(StandardCharsets.UTF_8)));
     }
 
-    private static String randomSalt(int len) {
+    private static String randomHex(int len) {
         byte[] b = new byte[len];
         RNG.nextBytes(b);
         return HexFormat.of().formatHex(b);
+    }
+
+    private static String onlyDigits(String s) {
+        return s == null ? "" : s.replaceAll("[^0-9]", "");
     }
 
     private static String truncate(String s) {

@@ -2,8 +2,11 @@ package ai.pleos.pickup.rec;
 
 import ai.pleos.pickup.client.KakaoDirectionsClient;
 import ai.pleos.pickup.client.KakaoDirectionsClient.LatLng;
+import ai.pleos.pickup.client.KakaoDirectionsClient.RouteResult;
 import ai.pleos.pickup.client.KakaoPoiClient;
 import ai.pleos.pickup.client.KakaoPoiClient.Poi;
+import ai.pleos.pickup.client.OsrmWalkingClient;
+import ai.pleos.pickup.client.OsrmWalkingClient.WalkingRoute;
 import ai.pleos.pickup.exclusion.ExclusionZone;
 import ai.pleos.pickup.exclusion.ExclusionZoneService;
 import org.slf4j.Logger;
@@ -14,22 +17,16 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * 픽업 위치 추천 엔진.
+ * 픽업 위치 추천 엔진 (정확도 개선 버전).
  *
- * 입력: 차량 현재 위치 + 운전자가 지정한 "대략적 목적지" (예: "강남역 2번 출구 근처")
- * 출력: 추천 픽업 지점 Top N (랜드마크 이름 포함, 차량 ETA + 목적지로부터 도보 포함)
- *
- * 흐름:
- *   1. 차량 → 목적지 카카오 모빌리티 경로
- *   2. 경로 샘플링 → "경로상 후보"
- *   3. 목적지 주변 POI (편의점/카페/지하철/은행) → "랜드마크 후보"
- *   4. 금지 구역 플래그 추가
- *   5. 정렬: 비금지 우선 → 점수 오름차순
- *
- * 점수 (낮을수록 좋음):
- *   score = walkFromDestinationMin + 0.3 * vehicleDetourMin − poiBonus
+ * 변경점:
+ *  - 차량 ETA: Kakao Directions 응답의 summary.distance/duration 으로 실제 평균 속도 계산
+ *  - 도보 거리/시간: Haversine 로 대략 스코어 → Top K 는 OSRM 실제 길찾기로 교체 후 재정렬
  */
 @Service
 public class PickupRecommender {
@@ -38,11 +35,11 @@ public class PickupRecommender {
 
     private static final double EARTH_RADIUS_M = 6_371_000.0;
     private static final double WALK_SPEED_M_PER_MIN = 75.0;
-    private static final double DRIVE_SPEED_M_PER_MIN = 400.0;
     private static final double SAMPLE_INTERVAL_M = 80.0;
     private static final double MAX_WALK_FROM_DEST_M = 500.0;
     private static final int POI_RADIUS_M = 400;
     private static final List<String> POI_CATEGORIES = List.of("CS2", "CE7", "SW8", "BK9");
+    private static final int OSRM_ENRICH_FACTOR = 2;   // top limit*2 를 OSRM 로 정확화
 
     private static final Map<String, String> CATEGORY_LABEL = Map.of(
             "CS2", "편의점",
@@ -54,12 +51,19 @@ public class PickupRecommender {
 
     private final KakaoDirectionsClient directions;
     private final KakaoPoiClient poiClient;
+    private final OsrmWalkingClient osrm;
     private final ExclusionZoneService exclusions;
 
-    public PickupRecommender(KakaoDirectionsClient directions, KakaoPoiClient poiClient,
+    // OSRM 호출 병렬화용 — 최대 8개 동시 (공용 데모 서버 과부하 방지)
+    private final ExecutorService osrmPool = Executors.newFixedThreadPool(8);
+
+    public PickupRecommender(KakaoDirectionsClient directions,
+                             KakaoPoiClient poiClient,
+                             OsrmWalkingClient osrm,
                              ExclusionZoneService exclusions) {
         this.directions = directions;
         this.poiClient = poiClient;
+        this.osrm = osrm;
         this.exclusions = exclusions;
     }
 
@@ -68,39 +72,50 @@ public class PickupRecommender {
             double destinationLat, double destinationLng,
             int limit
     ) {
-        // 1) 차량 → 목적지 경로
-        List<LatLng> route = directions.fetchRoute(
+        // 1) 차량 → 목적지 경로 (+ 실측 distance/duration)
+        RouteResult route = directions.fetchRoute(
                 new LatLng(vehicleLat, vehicleLng),
                 new LatLng(destinationLat, destinationLng)
         );
         if (route.isEmpty()) return List.of();
+        double avgSpeed = route.avgSpeedMpm();
 
-        // 2) 경로 샘플
-        List<SampledPoint> samples = sampleRoute(route, SAMPLE_INTERVAL_M);
+        // 2) 경로 샘플 + 목적지 주변 POI
+        List<SampledPoint> samples = sampleRoute(route.path(), SAMPLE_INTERVAL_M);
+        List<Poi> pois = poiClient.searchAround(destinationLat, destinationLng, POI_RADIUS_M, POI_CATEGORIES);
 
-        // 3) 목적지 주변 POI
-        List<Poi> pois = poiClient.searchAround(destinationLat, destinationLng,
-                POI_RADIUS_M, POI_CATEGORIES);
-
-        // 4) 후보 조립
+        // 3) 1차 후보 — Haversine 기반 rough score
         List<PickupCandidate> all = new ArrayList<>(samples.size() + pois.size());
         for (SampledPoint s : samples) {
-            all.add(buildFromRouteSample(s, destinationLat, destinationLng));
+            all.add(buildFromRouteSample(s, destinationLat, destinationLng, avgSpeed));
         }
         for (Poi p : pois) {
-            all.add(buildFromPoi(p, samples, destinationLat, destinationLng));
+            all.add(buildFromPoi(p, samples, destinationLat, destinationLng, avgSpeed));
         }
 
-        // 5) 너무 먼 것 제외 + 금지 구역 플래그
-        List<PickupCandidate> enriched = all.stream()
+        // 4) 거리 필터 + 금지 구역 플래그 + 1차 정렬
+        List<PickupCandidate> firstPass = all.stream()
                 .filter(c -> c.walkFromDestinationM() <= MAX_WALK_FROM_DEST_M)
                 .map(this::flagExclusion)
+                .sorted(Comparator.comparing(PickupCandidate::inExcludedZone)
+                        .thenComparingDouble(PickupCandidate::score))
+                .limit((long) limit * OSRM_ENRICH_FACTOR)
                 .toList();
 
-        long nonExcluded = enriched.stream().filter(c -> !c.inExcludedZone()).count();
-        log.info("[Recommend] route={} samples={} pois={} candidates={} nonExcluded={}",
-                route.size(), samples.size(), pois.size(), enriched.size(), nonExcluded);
+        // 5) Top K 에 대해 OSRM 실측 도보 (병렬)
+        LatLng destLL = new LatLng(destinationLat, destinationLng);
+        List<CompletableFuture<PickupCandidate>> futures = firstPass.stream()
+                .map(c -> CompletableFuture.supplyAsync(() -> enrichWalking(c, destLL), osrmPool))
+                .toList();
+        List<PickupCandidate> enriched = futures.stream()
+                .map(CompletableFuture::join)
+                .toList();
 
+        log.info("[Recommend] route={}pts samples={} pois={} 1stPass={} enrichedWithOsrm={} returning={}",
+                route.path().size(), samples.size(), pois.size(),
+                firstPass.size(), enriched.size(), Math.min(limit, enriched.size()));
+
+        // 6) 재정렬 (OSRM 반영) 후 top limit 반환
         return enriched.stream()
                 .sorted(Comparator.comparing(PickupCandidate::inExcludedZone)
                         .thenComparingDouble(PickupCandidate::score))
@@ -110,57 +125,74 @@ public class PickupRecommender {
 
     // ===== 후보 생성 =====
 
-    private PickupCandidate buildFromRouteSample(SampledPoint s, double destLat, double destLng) {
+    private PickupCandidate buildFromRouteSample(SampledPoint s, double destLat, double destLng, double avgSpeed) {
         double walkM = haversineM(destLat, destLng, s.lat, s.lng);
         double walkMin = walkM / WALK_SPEED_M_PER_MIN;
-        double driveMin = s.cumDistM / DRIVE_SPEED_M_PER_MIN;
-        // 경로상 포인트는 detour 0
-        double score = walkMin;
+        double driveMin = s.cumDistM / avgSpeed;
+        double score = walkMin;  // route_sample: detour=0, poiBonus=0
         return new PickupCandidate(
                 s.lat, s.lng, "route_sample", "경로상 지점", "경로",
-                walkM, walkMin,
-                s.cumDistM, driveMin,
-                score,
-                false, List.of(),
-                List.of("walkFromDest=%.0fm".formatted(walkM),
-                        "drive=%.1fmin".formatted(driveMin))
+                walkM, walkMin, s.cumDistM, driveMin,
+                0.0, 0.0, 0.0, false,
+                score, false, List.of(),
+                List.of("walk~%.0fm (추정)".formatted(walkM),
+                        "drive=%.1fmin (실측)".formatted(driveMin))
         );
     }
 
     private PickupCandidate buildFromPoi(Poi p, List<SampledPoint> samples,
-                                         double destLat, double destLng) {
+                                         double destLat, double destLng, double avgSpeed) {
         SampledPoint closest = samples.stream()
                 .min(Comparator.comparingDouble(s -> haversineM(s.lat, s.lng, p.lat(), p.lng())))
                 .orElse(samples.get(0));
         double detourM = haversineM(closest.lat, closest.lng, p.lat(), p.lng());
         double vehicleDistM = closest.cumDistM + detourM;
+        double detourMin = detourM / avgSpeed;
+        double driveMin = vehicleDistM / avgSpeed;
 
         double walkM = haversineM(destLat, destLng, p.lat(), p.lng());
         double walkMin = walkM / WALK_SPEED_M_PER_MIN;
-        double driveMin = vehicleDistM / DRIVE_SPEED_M_PER_MIN;
-        double detourMin = detourM / DRIVE_SPEED_M_PER_MIN;
-
-        // POI 보너스: 편의점/카페는 쉽게 세울 수 있으니 유리
         double poiBonus = switch (p.category()) {
             case "CS2", "CE7" -> 0.8;
             case "SW8", "BK9" -> 0.3;
             default -> 0.0;
         };
-        double score = walkMin + 0.3 * detourMin - poiBonus;
+        double score = scoreOf(walkMin, detourMin, poiBonus);
 
         return new PickupCandidate(
-                p.lat(), p.lng(),
-                "poi_" + p.category(),
-                p.name(),
+                p.lat(), p.lng(), "poi_" + p.category(), p.name(),
                 CATEGORY_LABEL.getOrDefault(p.category(), p.category()),
-                walkM, walkMin,
-                vehicleDistM, driveMin,
-                score,
-                false, List.of(),
-                List.of("walkFromDest=%.0fm".formatted(walkM),
-                        "drive=%.1fmin".formatted(driveMin),
+                walkM, walkMin, vehicleDistM, driveMin,
+                detourM, detourMin, poiBonus, false,
+                score, false, List.of(),
+                List.of("walk~%.0fm (추정)".formatted(walkM),
+                        "drive=%.1fmin (실측)".formatted(driveMin),
                         "detour=%.0fm".formatted(detourM))
         );
+    }
+
+    // ===== OSRM 보강 =====
+
+    private PickupCandidate enrichWalking(PickupCandidate c, LatLng dest) {
+        WalkingRoute wr = osrm.fetchRoute(dest, new LatLng(c.lat(), c.lng()));
+        double walkM = wr.distanceM();
+        double walkMin = wr.durationSec() / 60.0;
+        double newScore = scoreOf(walkMin, c.detourMin(), c.poiBonus());
+
+        List<String> reasons = new ArrayList<>(c.reasons());
+        reasons.removeIf(r -> r.startsWith("walk~"));
+        reasons.add(0, "walk=%.0fm (OSRM)".formatted(walkM));
+
+        return new PickupCandidate(
+                c.lat(), c.lng(), c.source(), c.label(), c.category(),
+                walkM, walkMin, c.vehicleDistanceM(), c.vehicleEtaMin(),
+                c.detourM(), c.detourMin(), c.poiBonus(), true,
+                newScore, c.inExcludedZone(), c.excludedReasons(), reasons
+        );
+    }
+
+    private static double scoreOf(double walkMin, double detourMin, double poiBonus) {
+        return walkMin + 0.3 * detourMin - poiBonus;
     }
 
     private PickupCandidate flagExclusion(PickupCandidate c) {
@@ -173,6 +205,7 @@ public class PickupRecommender {
                 c.lat(), c.lng(), c.source(), c.label(), c.category(),
                 c.walkFromDestinationM(), c.walkFromDestinationMin(),
                 c.vehicleDistanceM(), c.vehicleEtaMin(),
+                c.detourM(), c.detourMin(), c.poiBonus(), c.walkFromOsrm(),
                 c.score(), true, reasons, c.reasons()
         );
     }

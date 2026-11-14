@@ -1,15 +1,19 @@
 package ai.pleos.pickup.controller;
 
 import ai.pleos.pickup.domain.PickupSession;
+import ai.pleos.pickup.dto.CancelRequest;
 import ai.pleos.pickup.dto.CreateSessionRequest;
 import ai.pleos.pickup.dto.RedeemRequest;
 import ai.pleos.pickup.dto.SessionResponse;
 import ai.pleos.pickup.dto.WebSessionView;
 import ai.pleos.pickup.service.PickupSessionService;
 import ai.pleos.pickup.service.SmsSender;
+import ai.pleos.pickup.ws.SessionChannelRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
+
+import java.util.Map;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,13 +34,17 @@ public class SessionController {
 
     private final PickupSessionService service;
     private final SmsSender sms;
+    private final SessionChannelRegistry registry;
+    private final com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     @Value("${app.sms-title:}")   private String smsTitle;
     @Value("${app.sms-template}") private String smsTemplate;
 
-    public SessionController(PickupSessionService service, SmsSender sms) {
+    public SessionController(PickupSessionService service, SmsSender sms,
+                             SessionChannelRegistry registry) {
         this.service = service;
         this.sms = sms;
+        this.registry = registry;
     }
 
     @Operation(
@@ -65,6 +73,27 @@ public class SessionController {
         }
 
         return SessionResponse.from(session, webUrl, smsSent, smsDetail);
+    }
+
+    @Operation(
+        summary = "세션 취소 (운전자)",
+        description = """
+            차량 앱이 세션 토큰으로 취소 요청. 상태를 CANCELED 로 전환하고
+            보행자 웹에 WebSocket 으로 { "type":"session_canceled", "reason": "..." } 전송.
+            보행자 웹은 이 메시지 받으면 alert + 위치 공유 중단.
+            """
+    )
+    @PostMapping("/cancel")
+    public Map<String, Object> cancel(@RequestBody @jakarta.validation.Valid CancelRequest req) {
+        PickupSession session = service.cancel(req.token());
+        try {
+            String payload = mapper.writeValueAsString(Map.of(
+                    "type", "session_canceled",
+                    "reason", req.reason() == null ? "driver_canceled" : req.reason()
+            ));
+            registry.sendToPedestrian(session.getId(), payload);
+        } catch (Exception ignored) {}
+        return Map.of("status", session.getStatus().name(), "sessionId", session.getId().toString());
     }
 
     @Operation(

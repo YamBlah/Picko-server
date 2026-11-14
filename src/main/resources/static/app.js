@@ -282,7 +282,7 @@ function handleWsMessage(msg) {
   switch (msg.type) {
     case 'vehicle_location':
       VEHICLE_POS = { lat: msg.lat, lng: msg.lng };
-      drawVehicleMarker();      // 첫 수신 시 lazy 생성
+      drawVehicleMarker();
       vehicleMarker?.setPosition(new kakao.maps.LatLng(msg.lat, msg.lng));
       vehicleEverReceived = true;
       updateVehicleEta();
@@ -291,7 +291,34 @@ function handleWsMessage(msg) {
       const etaEl = document.querySelector('.eta-value');
       if (etaEl && msg.minutes != null) etaEl.textContent = `${msg.minutes}분`;
       break;
+    case 'session_canceled':
+      handleCanceled(msg.reason);
+      break;
   }
+}
+
+// ===== 취소 처리 =====
+function handleCanceled(reason) {
+  // 위치 공유 중지
+  if (geoWatchId !== null) {
+    navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = null;
+  }
+  // WebSocket 닫기 (재연결 X)
+  clearTimeout(wsReconnectTimer);
+  if (ws) {
+    ws.onclose = null;
+    ws.close();
+    ws = null;
+  }
+  // 전체 화면 알림
+  document.body.innerHTML = `
+    <div class="expired">
+      <div class="emoji">🚫</div>
+      <div class="title">운전자 요청으로 픽업이 취소되었어요</div>
+      <div class="desc">다시 이용하려면 운전자에게 새 링크를 요청해 주세요.</div>
+      ${reason ? `<div class="reason">(${reason})</div>` : ''}
+    </div>`;
 }
 
 // ===== 바텀시트 드래그 =====

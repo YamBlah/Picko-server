@@ -46,6 +46,15 @@ public class PickupSessionService {
         return repo.save(session);
     }
 
+    /** 운전자(차량 토큰 보유자) 가 세션 취소. 상태 CANCELED 로 전환. */
+    @Transactional
+    public PickupSession cancel(String token) {
+        PickupSession session = repo.findByToken(token)
+                .orElseThrow(() -> new NoSuchElementException("session_not_found"));
+        session.cancel();
+        return session;
+    }
+
     /** 토큰 → 쿠키 교환. 만료/이미 사용/없음 → 예외 */
     @Transactional
     public PickupSession redeem(String token) {

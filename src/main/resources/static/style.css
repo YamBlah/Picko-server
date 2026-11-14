@@ -301,6 +301,7 @@ img { display: block; }
   color: var(--c-primary);
   line-height: 1;
   white-space: nowrap;
+  min-width: 48px;   /* "3분" / "15분" 등 레이아웃 흔들림 방지 */
 }
 
 /* 픽업 위치 */

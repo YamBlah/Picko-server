@@ -32,19 +32,22 @@ function updateVehicleEta() {
 }
 
 function updateWalkEta() {
-  if (!MY_POS) return;                // 위치 공유 전엔 "위치 공유 전" 유지
+  if (!MY_POS) return;
   const wDist = haversineM(MY_POS.lat, MY_POS.lng, MEET_POINT.lat, MEET_POINT.lng);
-  // 큰 수는 시간/분 단위로 포맷
   const wMin = Math.round(wDist / WALK_M_PER_MIN);
-  const walkEl = document.querySelector('.pickup-meta .walk');
-  if (!walkEl) return;
+  let text;
   if (wMin >= 60) {
     const h = Math.floor(wMin / 60);
     const m = wMin % 60;
-    walkEl.textContent = m > 0 ? `도보 약 ${h}시간 ${m}분` : `도보 약 ${h}시간`;
+    text = m > 0 ? `도보 약 ${h}시간 ${m}분` : `도보 약 ${h}시간`;
   } else {
-    walkEl.textContent = `도보 약 ${Math.max(1, wMin)}분`;
+    text = `도보 약 ${Math.max(1, wMin)}분`;
   }
+  // 바텀시트 + 지도 마커 라벨 동시 갱신
+  const walkEl = document.querySelector('.pickup-meta .walk');
+  if (walkEl) walkEl.textContent = text;
+  const meetSub = document.querySelector('[data-role="meet-sub"]');
+  if (meetSub) meetSub.textContent = text;
 }
 
 let map;
@@ -93,8 +96,18 @@ function applySessionInfo(s) {
   if (q('.vehicle-plate') && s.vehiclePlate) q('.vehicle-plate').textContent = s.vehiclePlate;
   if (q('.vehicle-color') && s.vehicleColor) q('.vehicle-color').textContent = `차량 색상 · ${s.vehicleColor}`;
   if (q('.pickup-name')  && s.pickupName)   q('.pickup-name').textContent  = s.pickupName;
-  // 주의: ETA/도보 분은 "실제 좌표가 수신될 때만" recalcEtas() 로 설정.
-  //       세션 저장값은 운전자 설정값 기반이라 탑승자 실제 위치와 무관함.
+
+  // 차량 ETA — 세션 생성 시 추정값을 초기 표시로. 차량이 실제 좌표 쏘기 시작하면 updateVehicleEta 가 덮어씀.
+  // (세션 생성 시 운전자가 지정한 "차량 위치 → 픽업지점" 기준이라 운전자 쪽 추정으로 유효함)
+  if (s.vehicleEtaMin != null) {
+    const etaEl = q('.eta-value');
+    if (etaEl) etaEl.textContent = `${Math.max(1, Math.round(s.vehicleEtaMin))}분`;
+  }
+
+  // 도보 ETA 는 탑승자 실제 위치가 들어와야 의미 있음 (세션 저장값은 운전자가 가정한 값).
+  // 지도 마커 label-sub 초기 상태도 "위치 공유 전" 로 통일
+  const meetSub = q('[data-role="meet-sub"]');
+  if (meetSub) meetSub.textContent = '위치 공유 전';
 }
 
 function showExpired(reason) {
@@ -189,7 +202,7 @@ function makeMeetMarkerContent(subText = '추천 픽업 위치') {
     <div class="marker-pickup-badge">${SVG_MARKER_PICKUP}</div>
     <div class="marker-label">
       <div class="label-title">${subText}</div>
-      <div class="label-sub" data-role="meet-sub">도보 약 2분</div>
+      <div class="label-sub" data-role="meet-sub">위치 공유 전</div>
     </div>`;
   return wrap;
 }

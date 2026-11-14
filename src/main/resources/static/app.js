@@ -190,9 +190,26 @@ function updateEta(minutes) {
 
 // ===== Geolocation =====
 let geoWatchId = null;
-let pedestrianSentCount = 0;
 
-document.querySelector('.cta-btn').addEventListener('click', startSharingLocation);
+const ctaBtn   = document.querySelector('.cta-btn');
+const ctaLabel = ctaBtn.querySelector('span');
+const ctaIcon  = ctaBtn.querySelector('.cta-icon');
+
+ctaBtn.addEventListener('click', startSharingLocation);
+
+function setBtnSharing() {
+  ctaBtn.classList.add('sharing');
+  ctaBtn.disabled = true;
+  ctaIcon.src = 'assets/ic_pin_check_sharing.svg';
+  ctaLabel.textContent = '내 위치 공유 중';
+}
+
+function setBtnDefault(label) {
+  ctaBtn.classList.remove('sharing');
+  ctaBtn.disabled = false;
+  ctaIcon.src = 'assets/ic_send.svg';
+  ctaLabel.textContent = label ?? '운전자에게 내 위치 보내기';
+}
 
 function startSharingLocation() {
   if (!('geolocation' in navigator)) {
@@ -201,9 +218,8 @@ function startSharingLocation() {
   }
   if (geoWatchId !== null) return;
 
-  const btn = document.querySelector('.cta-btn span');
-  btn.textContent = '위치 조회 중…';
-  document.querySelector('.cta-btn').disabled = true;
+  ctaLabel.textContent = '위치 조회 중…';
+  ctaBtn.disabled = true;
 
   geoWatchId = navigator.geolocation.watchPosition(
     (pos) => {
@@ -214,16 +230,13 @@ function startSharingLocation() {
 
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'pedestrian_location', lat, lng }));
-        pedestrianSentCount += 1;
-        btn.textContent = `위치 공유 중 · 전송 ${pedestrianSentCount}`;
-        document.querySelector('.cta-btn').disabled = false;
+        setBtnSharing();
       } else {
-        btn.textContent = 'WebSocket 미연결';
+        ctaLabel.textContent = '연결 대기 중…';
       }
     },
     (err) => {
-      btn.textContent = '다시 시도';
-      document.querySelector('.cta-btn').disabled = false;
+      setBtnDefault('다시 시도');
       showGeoError(geoErrorDetail(err));
       geoWatchId = null;
     },

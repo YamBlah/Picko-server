@@ -93,22 +93,24 @@ img { display: block; }
   height: 15px;
 }
 
-/* 재센터 버튼 */
+/* 재센터 버튼 — SVG 는 77x77 (drop shadow 포함). visual 영역만 32x32 로 anchor */
 .recenter-btn {
   position: absolute;
   right: 16px;
   bottom: 40px;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent;
   z-index: 5;
 }
 .recenter-btn img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  width: 77.18px;
+  height: 77.18px;
+  top: -16.94px;
+  left: -22.59px;
+  pointer-events: none;
 }
 
 /* ===== 지도 마커 (카카오맵 CustomOverlay 안에 들어감) ===== */
@@ -136,16 +138,17 @@ img { display: block; }
 .marker-badge.pedestrian { background: var(--c-mint-light); }
 .marker-badge img { width: 17px; height: 17px; }
 
-/* 차량 반경 할로 (마커 아래쪽에 깔림) */
+/* 차량 반경 할로 — SVG 86.4x86.4, 배지(32) 중심에 위치 */
 .vehicle-halo {
   position: absolute;
-  width: 86px;
-  height: 86px;
-  left: -27px;
-  top: -27px;
+  width: 86.4px;
+  height: 86.4px;
+  left: -27.2px;
+  top: -27.2px;
   pointer-events: none;
+  z-index: -1;
 }
-.vehicle-halo img { width: 100%; height: 100%; }
+.vehicle-halo img { width: 100%; height: 100%; display: block; }
 
 /* 마커 옆 라벨 */
 .marker-label {
@@ -170,13 +173,20 @@ img { display: block; }
   color: var(--c-text-secondary);
 }
 
-/* 추천 픽업 위치 마커 (SVG 핀 배지) */
+/* 추천 픽업 위치 마커 — SVG 는 44.88x44.88 (drop shadow 포함). visual pin 은 29x29 */
 .marker-pickup-badge {
+  position: relative;
   width: 29px;
-  height: 36px;
+  height: 29px;
   flex-shrink: 0;
 }
-.marker-pickup-badge img { width: 100%; height: 100%; }
+.marker-pickup-badge img {
+  position: absolute;
+  width: 44.88px;
+  height: 44.88px;
+  top: -5.94px;
+  left: -7.92px;
+}
 
 /* ===== 바텀시트 ===== */
 .sheet {
@@ -332,6 +342,16 @@ img { display: block; }
 }
 .cta-btn:active { filter: brightness(0.95); }
 .cta-btn .cta-icon { width: 18px; height: 18px; }
+
+/* 위치 공유 중 상태 — 비활성 버튼 */
+.cta-btn.sharing {
+  background: #D9E9FF;
+  color: var(--c-text-secondary);
+  cursor: default;
+  filter: none;
+}
+.cta-btn.sharing:active { filter: none; }
+.cta-btn.sharing:disabled { opacity: 1; }
 .cta-btn:disabled { opacity: 0.7; cursor: default; }
 
 .cta-hint {

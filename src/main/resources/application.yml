@@ -1,0 +1,41 @@
+server:
+  port: ${PORT:5173}
+  forward-headers-strategy: framework   # Railway/Render 프록시 뒤에서 X-Forwarded-Proto 신뢰
+
+spring:
+  application:
+    name: pleos-pickup
+  mvc:
+    async:
+      request-timeout: -1
+  datasource:
+    url: jdbc:h2:mem:pickup;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate.format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+kakao:
+  rest-api-key: ${KAKAO_REST_API_KEY:b0664cb48af6552829a377190af6f8db}
+  directions-url: https://apis-navi.kakaomobility.com/v1/directions
+
+osrm:
+  walking-url: ${OSRM_WALKING_URL:https://routing.openstreetmap.de/routed-foot}
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY:}
+  api-secret: ${COOLSMS_API_SECRET:}
+  sender-phone: ${COOLSMS_SENDER_PHONE:}
+
+app:
+  web-base-url: ${APP_WEB_BASE_URL:http://localhost:5173}
+  sms-template: "[Picko] 운전자가 픽업 지점을 안내했어요. 아래 링크에서 확인하세요.\n{url}"

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>픽업 안내</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Kakao Maps JavaScript SDK (services 라이브러리 포함) -->
+  <script
+    type="text/javascript"
+    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d8a9a27e90cd5ba00102b59cccf34c78&autoload=false&libraries=services"
+  ></script>
+</head>
+<body>
+  <div class="screen" data-node-id="64:10212">
+    <!-- 상단 지도 -->
+    <section class="map-section">
+      <div id="map" class="map"></div>
+
+      <!-- 차량 이동 상태 말풍선 -->
+      <div class="status-pill vehicle-status">
+        <span>차량 이동 중 · 약 3분</span>
+      </div>
+
+      <!-- 지도 위치 재설정 버튼 -->
+      <button id="recenterBtn" class="recenter-btn" aria-label="내 위치로">◎</button>
+
+      <!-- 지도 범례 -->
+      <div class="map-legend">
+        <span><em class="dot vehicle"></em>차량</span>
+        <span><em class="dot me"></em>내 위치</span>
+        <span><em class="dot meet"></em>만남 지점</span>
+      </div>
+    </section>
+
+    <!-- 바텀시트 -->
+    <section class="sheet">
+      <div class="drag-handle" aria-hidden="true"></div>
+
+      <h1 class="sheet-title">차량이 오고 있어요!</h1>
+      <p class="sheet-sub">운전자가 지정한 픽업 장소에서 만나요.</p>
+
+      <!-- 차량 정보 카드 -->
+      <div class="vehicle-card">
+        <div class="vehicle-icon">🚘</div>
+        <div class="vehicle-info">
+          <div class="vehicle-model"></div>
+          <div class="vehicle-plate"></div>
+          <div class="vehicle-color"></div>
+        </div>
+        <div class="eta">
+          <div class="eta-label">도착 예정</div>
+          <div class="eta-value">3분</div>
+        </div>
+      </div>
+
+      <!-- 픽업 위치 -->
+      <div class="pickup-row">
+        <div class="pickup-left">
+          <div class="pickup-label">픽업 위치</div>
+          <div class="pickup-name"></div>
+        </div>
+        <div class="pickup-walk">도보 약 2분</div>
+      </div>
+
+      <button class="cta-btn">픽업 장소까지 길 안내 ↗</button>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

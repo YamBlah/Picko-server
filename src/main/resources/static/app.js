@@ -1,7 +1,7 @@
 // ===== 상태 =====
 let MEET_POINT = { lat: 37.49793, lng: 127.02757 };
-let VEHICLE_POS = { lat: MEET_POINT.lat, lng: MEET_POINT.lng };
-let MY_POS = null;
+let VEHICLE_POS = null;     // 차량이 실제로 좌표 쏴야 설정됨
+let MY_POS = null;          // 탑승자가 위치 공유 시작해야 설정됨
 let sessionInfo = null;
 
 // 평균 속도 (라이브 ETA 계산용). 서울 도심 가정.
@@ -125,8 +125,8 @@ function initMap() {
   const center = new kakao.maps.LatLng(MEET_POINT.lat, MEET_POINT.lng);
   map = new kakao.maps.Map(document.getElementById('map'), { center, level: 4 });
 
-  drawVehicleMarker();
-  drawMeetMarker();
+  drawMeetMarker();   // 픽업 지점은 세션에 포함되어 있으니 바로 그림
+  // 차량 / 탑승자 마커는 실제 좌표 수신 시 lazy 생성
 
   document.getElementById('recenterBtn').addEventListener('click', () => {
     if (MY_POS) {
@@ -208,6 +208,7 @@ function makeMeetMarkerContent(subText = '추천 픽업 위치') {
 }
 
 function drawVehicleMarker() {
+  if (vehicleMarker || !VEHICLE_POS) return;
   vehicleMarker = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(VEHICLE_POS.lat, VEHICLE_POS.lng),
     content: makeVehicleMarkerContent(),
@@ -259,7 +260,8 @@ function handleWsMessage(msg) {
   switch (msg.type) {
     case 'vehicle_location':
       VEHICLE_POS = { lat: msg.lat, lng: msg.lng };
-      vehicleMarker.setPosition(new kakao.maps.LatLng(msg.lat, msg.lng));
+      drawVehicleMarker();      // 첫 수신 시 lazy 생성
+      vehicleMarker?.setPosition(new kakao.maps.LatLng(msg.lat, msg.lng));
       vehicleEverReceived = true;
       updateVehicleEta();
       break;
@@ -269,6 +271,86 @@ function handleWsMessage(msg) {
       break;
   }
 }
+
+// ===== 바텀시트 드래그 =====
+(function setupDraggableSheet() {
+  const sheet = document.getElementById('sheet');
+  const handle = document.getElementById('dragHandle');
+  if (!sheet || !handle) return;
+
+  const SNAP = () => {
+    const vh = window.innerHeight;
+    return {
+      collapsed: 72,
+      default: 345,
+      expanded: Math.floor(vh * 0.85),
+    };
+  };
+
+  function setHeight(h) {
+    sheet.style.height = `${h}px`;
+    document.documentElement.style.setProperty('--sheet-height', `${h}px`);
+  }
+
+  let dragging = false;
+  let startY = 0;
+  let startH = 0;
+  let moved = false;
+
+  handle.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    moved = false;
+    startY = e.clientY;
+    startH = sheet.offsetHeight;
+    sheet.style.transition = 'none';
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dy = startY - e.clientY;
+    if (Math.abs(dy) > 3) moved = true;
+    const snap = SNAP();
+    const h = Math.max(snap.collapsed, Math.min(snap.expanded, startH + dy));
+    setHeight(h);
+  });
+
+  function snapTo(current) {
+    const snap = SNAP();
+    const candidates = [snap.collapsed, snap.default, snap.expanded];
+    const target = candidates.reduce((best, c) =>
+      Math.abs(c - current) < Math.abs(best - current) ? c : best
+    );
+    sheet.style.transition = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+    setHeight(target);
+  }
+
+  handle.addEventListener('pointerup', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    handle.releasePointerCapture?.(e.pointerId);
+    if (!moved) {
+      // 탭 — collapsed ↔ default 토글
+      const snap = SNAP();
+      const current = sheet.offsetHeight;
+      const target = current <= snap.collapsed + 30 ? snap.default : snap.collapsed;
+      sheet.style.transition = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+      setHeight(target);
+    } else {
+      snapTo(sheet.offsetHeight);
+    }
+  });
+
+  handle.addEventListener('pointercancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    snapTo(sheet.offsetHeight);
+  });
+
+  // 초기 CSS 변수 세팅
+  setHeight(SNAP().default);
+})();
 
 // ===== Geolocation =====
 let geoWatchId = null;

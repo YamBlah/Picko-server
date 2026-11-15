@@ -25,7 +25,7 @@ spring:
       path: /h2-console
 
 kakao:
-  rest-api-key: ${KAKAO_REST_API_KEY:b0664cb48af6552829a377190af6f8db}
+  rest-api-key: ${KAKAO_REST_API_KEY:}
   directions-url: https://apis-navi.kakaomobility.com/v1/directions
 
 osrm:
